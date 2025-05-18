@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+    <title>boundarium</title>
+    <style>
+        html{
+            height: 100vh;
+            background-image: linear-gradient(0deg, rgb(249, 248, 242), rgb(255, 251, 250), rgb(255, 255, 255));
+        }
+        :root{
+            --dark:  #0d1626;
+            --orange:#ee7e00;
+            --green: #008731;
+            --lime:  #7cc900;
+        }
+
+        /* ===== Play ボタン ===== */
+        .bound-play{
+        position:fixed;
+        right: 5%;
+        bottom: 5%;
+        /* 右側をちょっと広めに確保して文字にかぶらないようにする */
+        padding:18px 120px 22px 48px;
+        /*border:4px solid var(--dark);*/
+        border: none;
+        border-radius:40px;
+        background:transparent;
+        color:var(--dark);
+        font-size:28px;font-weight:600;
+        cursor:pointer;
+        transition:transform .15s cubic-bezier(.2,1.3,.4,1);
+        overflow:hidden;
+        }
+
+        .bound-play:hover   {transform:translateY(-6px) scale(1.05);}
+        .bound-play:active  {transform:translateY( 0px) scale(.96); }
+
+        /* ===== オレンジライン & 矢印 ===== 
+        .bound-play::before,
+        .bound-play::after{
+        content:"";
+        position:absolute;left:0;right:0;bottom:14px;height:4px;
+        background:var(--orange);
+        }
+        */
+        .bound-play::after{              /* 矢印の三角 */
+        left:auto;width:22px;
+        clip-path:polygon(0 0,100% 50%,0 100%);
+        transform:translateX(4px);
+        }
+
+        /* ===== ミニスクエアたち ===== */
+        .squares{
+        position:absolute;
+        right:50px;                    /* ↩︎ 文字と矢印の間に配置 */
+        top:50%;transform:translateY(-50%);
+        display:flex;gap:6px;
+        pointer-events:none;           /* クリックを奪わない */
+        }
+
+        .square{
+        width:14px;height:14px;border-radius:3px;
+        animation:none;
+        }
+        .square:nth-child(1){background:var(--orange);}
+        .square:nth-child(2){background:var(--lime);}
+        .square:nth-child(3){background:var(--green);}
+
+        /* ★ ホバー時だけ個別アニメを適用 ★ */
+        .bound-play:hover .square:nth-child(1){animation:bounce1 1.2s   infinite ease-out;}
+        .bound-play:hover .square:nth-child(2){animation:bounce2 1.4s .1s infinite ease-out;}
+        .bound-play:hover .square:nth-child(3){animation:bounce3 1.1s .2s infinite ease-out;}
+
+        /* ３種類のぴょこぴょこ */
+        @keyframes bounce1{
+        0%,100%{transform:translateY( 0);}
+        40%    {transform:translateY(-12px);}
+        60%    {transform:translateY( -4px);}
+        }
+        @keyframes bounce2{
+        0%,100%{transform:translateY( 0);}
+        30%    {transform:translateY(-16px);}
+        55%    {transform:translateY( -2px);}
+        }
+        @keyframes bounce3{
+        0%,100%{transform:translateY( 0);}
+        35%    {transform:translateY(-10px);}
+        65%    {transform:translateY( -5px);}
+        }
+        
+        body {
+            cursor: url('img/brush_default.png') 0 32, auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+
+        .logo {
+            position: absolute;
+            top: 5px;
+            width: 280px;
+
+        }
+
+        .editor{
+            border: 3px solid #dd9f6f21;
+            border-radius: 8px;
+            z-index: 1000;
+            position: absolute;
+            width: 80px;
+            height: 200px;
+            padding: 10px;
+            left: 10%;
+            box-shadow: 0px 1px 4px rgb(138, 138, 138);
+            background-image: linear-gradient(0deg, rgb(246, 243, 241), rgb(255, 255, 255), rgb(255, 252, 247));
+        
+        }
+        .drag-handle {
+            width: 30px;
+            height: 20px;
+            cursor: grab;
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            user-select: none; /* 選択不可 */
+        }
+
+        .dot-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 6px);
+            grid-template-rows: repeat(2, 6px);
+            gap: 3px;
+            justify-content: center;
+        }
+
+        .dot-edi {
+            width: 5px;
+            height: 5px;
+            background-color: rgb(146, 143, 141);
+            border-radius: 50%;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 40px; /* ドットの下に余白を作る */
+            gap: 10px; /* ボタンの間隔 */
+        }
+
+        .editor-btn {
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: 3px solid rgb(146, 143, 141, 0.4);
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 5px;
+            background-color:rgb(229, 229, 229);
+            transition: 0.1s;
+        }
+
+        .editor-btn:hover{
+            background-color: aliceblue;
+        }
+        .editor-btn.selected{
+            border: 3px solid #E18139;
+            background-color:white;
+
+        }
+
+        .editor-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 画像をボタンにフィット */
+        }
+
+
+        .container {
+            width: 360px;
+            height: 360px;
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border-radius: 4px;
+            grid-template-rows: repeat(9, 1fr);
+            position: relative;
+            background-image: linear-gradient(0deg, rgb(250, 248, 247), rgb(255, 255, 255),rgb(254, 253, 252));
+            box-shadow: inset 0 0 8px rgb(210, 208, 205);
+            transition: 0.2s;
+            right: 0%;
+        }
+
+        .lines-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* クリックを邪魔しない */
+        }
+        
+        /*
+        .lines-container-frame{
+            width: 360px;
+            height: 360px;
+            border-radius: 4px;
+            outline: 1px dotted rgb(220, 220, 220);
+            outline-offset: -20px;
+            position: relative;
+        }
+        */
+
+            /* ① 基本の点線（ドット）＋行進アニメ */
+        .line{
+            position: absolute;
+            height: 5px;            /* 線の太さ = ドットの直径 */
+            border-radius: 2.5px;   /* ちょい丸く */
+
+            /* ドットを作る */
+            background-image: radial-gradient(circle , #888 40%, transparent 41%);
+            /*       ↑↑      ↑↑
+                ドット色    ドットが終わる割合 */
+
+            background-size: 12px 5px; /* 横 = ドット間隔, 縦 = 線の太さ */
+
+            /* アリさん行進！ */
+            animation: march 0.9s linear infinite;
+
+            /* もともとの設定そのまま ↓ */
+            transform-origin: left center;
+            pointer-events: none;
+            z-index: 20;
+            transition: none;
+        }
+
+            /* ② ドットを動かすアニメーション */
+        @keyframes march{
+                to{ background-position:   0 0; }   /* スタート */
+            from { background-position: -12px 0; } /* 1コ分左へずらすとループで前進に見える */
+        }
+
+        .line.arrow::after {
+            content: '';
+            position: absolute;
+            right: -3px; /* 矢印を線の終端に配置 */
+            top: 50%;
+            transform: translateY(-50%) rotate(45deg);
+            width: 10px;
+            height: 10px;
+            border-top: 5px solid #9f9c9a;
+            border-right: 5px solid #9f9c9a;
+            border-radius: 3px;
+        }
+/*
+        .point{
+            width: 30px;
+            height: 30px;
+            background-color: rgba(0, 102, 255, 0.461);
+            box-sizing: border-box;  
+            border: solid #dadada85 6px;
+            padding: 5px;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 101;
+            opacity: 0;
+        }
+*/
+        .dot {
+            position: absolute;
+            width: 6px;  /* 見た目の点のサイズ */
+            height: 6px; /* 見た目の点のサイズ */
+            background-color: rgb(73, 73, 73);
+            border-radius: 50%; /* 丸にする */
+            pointer-events: none;  /* 見た目の点にはマウスイベントを当てない */
+            z-index: 99;
+            opacity: 0.2;
+        }
+
+        .dot::after {
+            content: '';
+            position: absolute;
+            width: 32px;  /* ヒットボックスのサイズ（3倍） */
+            height: 32px; /* ヒットボックスのサイズ（3倍） */
+            background-color: transparent; /* 背景は透明 */
+            pointer-events: auto; /* ヒットボックスにはマウスイベントを当てる */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* 中心に配置 */
+        }
+        
+        .dot.active:hover {
+            opacity: 1;
+            background-color: rgb(156, 159, 159);
+        }
+        .dot.active {
+            opacity: 1;
+            
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .mini-square {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            position: absolute;
+            box-shadow: 0 0 5px rgba(128, 128, 128, 0.5);
+            transition: clip-path 0.25s ease-out;
+            overflow: visible;
+            /*transition: 0.15s;*/
+        }
+        .mini-square.hit::after {
+            content: "";
+            position: absolute;
+            inset: -4px;              /* 少し外側からスタート */
+            border: 2px solid currentColor;
+            
+            border-radius: 4px;
+            opacity: 0.8;
+            animation: puff 320ms ease-out forwards;
+        }
+
+        @keyframes puff {
+            from { transform: scale(1); opacity: 0.8; }
+            to   { transform: scale(1.4); opacity: 0;   }
+        }
+
+        .mini-square.fillset{
+            clip-path: circle(0% at center); /* 初期状態: 円がゼロ */
+            
+        }
+
+        .mini-square.filled {
+            clip-path: circle(100% at center); /* 円を広げる */
+        }
+
+        .mini-square.dragging {
+            opacity: 0.5;
+        }
+
+        .hit-animated::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 2px dashed white;
+            pointer-events: none;
+            border-radius: 4px; /* 任意 */
+            animation: dashLoop 1s linear infinite;
+            z-index: 100;
+        }
+
+        @keyframes dashLoop {
+            0% {
+                stroke-dashoffset: 0;
+            }
+            100% {
+                stroke-dashoffset: -20;
+            }
+        }
+
+
+        .keyBoard-ctn{
+            position: fixed;
+            bottom: -100px;
+            transition: 0.4s;
+            opacity: 0;
+            background-color: #fffaf6;
+            background-image: linear-gradient(0deg, #ada9a6, #ece6e1,#fffaf6);
+            height: 100px;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 0 8px rgba(128, 128, 128, 0.5);
+            
+        }
+        .keyBoard-ctn.open{
+            opacity: 1;
+            bottom: -60px;
+        }
+        .keyBoard-row{
+            display: flex;
+            margin: auto;
+            align-items: center;
+            text-align: center;
+        }
+        .keyBoard-row.top{
+            display: none;
+            margin: auto auto 10px 45px;
+            opacity: 0.8;
+        }
+
+        .keyBoard-cell{
+            width: 35px;
+            height: 35px;
+            margin: 0 6px;
+            border-radius: 3.5px;
+            border-radius: 50%;
+            box-shadow: 0 2px 2px rgba(174, 174, 174, 0.58);
+            transition: 0.2s;
+            opacity: 1;
+
+        }
+        .keyBoard-cell:hover{
+            opacity: 0.8;
+        }
+
+        .keyBoard-cell.selected{
+            box-shadow:inset 0 2px 2px rgba(174, 174, 174, 0.58);
+            outline: 3px solid rgba(128, 128, 128, 0.5); /* 外側に描画される枠線 */
+            outline-offset: 4px; /* 要素の外側に4px離して描画 */
+        }
+
+        #f-bl{
+            margin: 0 4px 0 47.5px;
+        }
+
+        .c{
+            background-color: rgb(231, 74, 65);
+        }        
+        .c-bl{
+            background-image: linear-gradient(90deg, rgb(229, 49, 25), rgb(255, 236, 67));
+        }
+        
+        .d{
+            background-color: rgb(240, 195, 34);
+        }
+        .d-bl{
+            background-image: linear-gradient(90deg, rgb(255, 240, 25), rgb(255, 162, 23));
+        }
+
+        .e{
+            background-color: rgb(237, 152, 54);
+        }
+
+        .f{
+            background-color: rgb(92, 202, 58);
+        }
+        .f-bl{
+            background-image: linear-gradient(90deg, rgb(125, 245, 89),rgb(58, 137, 241));
+        }
+
+        .g{
+            background-color: rgb(48, 122, 218);
+        }
+        .g-bl{
+            background-image: linear-gradient(90deg, rgb(63, 144, 199),rgb(168, 61, 245));
+        }
+
+        .a{
+            background-color: rgb(124, 69, 207);
+        }
+        .a-bl{
+            background-image: linear-gradient(90deg, rgb(154, 100, 235),rgb(226, 59, 232));
+        }
+        .b{
+            background-color: rgb(226, 103, 195);
+        }
+        
+        .reset{
+            background-color: #D5EBFF;
+            border-radius: 12px;
+            border: 2px solid rgba(128, 128, 128, 0.2);
+            margin: 0 0 0 16px;
+            width: 32px;
+            transition: 0.2s;
+            opacity: 1;
+            height: 32px;
+        }
+        /*
+        .btn-ctn{x
+            position: fixed;
+            bottom:  8%;
+            font-size: 30px;
+            color: rgb(140, 140, 140);
+        }
+        .fa-solid.fa-plus,
+        .fa-solid.fa-trash,
+        .fa-solid.fa-play{
+            margin: 0 40px;
+        }
+        .fa-solid.fa-trash{
+            font-size: 26px;
+            margin: 0 44px;
+        }
+        
+        .fa-solid.fa-plus:hover,
+        .fa-solid.fa-trash:hover,
+        .fa-solid.fa-play:hover{
+            color: rgb(92, 92, 92);
+            cursor: pointer;
+        }
+        */
+    </style>
+</head>
+
+<body>
+
+    <img src="img/boundarium-logo.png" alt="ロゴ" class="logo">
+    <div class="editor">
+        <div class="drag-handle">
+            <div class="dot-grid">
+                <div class="dot-edi"></div>
+                <div class="dot-edi"></div>
+                <div class="dot-edi"></div>
+                <div class="dot-edi"></div>
+                <div class="dot-edi"></div>
+                <div class="dot-edi"></div>
+            </div>
+        </div>
+
+        <div class="button-container">
+
+            <button class="editor-btn brush-btn selected" name="brush">
+                <img src="img/brush_default.png" alt="アイコン1">
+            </button>
+
+            <button class="editor-btn pencil-btn" name="pencil">
+                <img src="img/pencil.png" alt="アイコン2">
+            </button>
+
+            <button class="editor-btn hand-btn" name="hand">
+                <img src="img/hand.png" alt="アイコン3">
+            </button>
+
+        </div>
+
+    </div>
+    
+
+    <div class="container" id="grid-container">
+        <div class="lines-container">
+            <div class="lines-container-frame">
+                <!-- <div class="point"></div> -->
+            </div>
+        </div>
+    </div>
+    
+    <!--
+     <div class="menu" id="menu">
+     -->
+
+        <div class="keyBoard-ctn open">
+
+            <div class="keyBoard-row top">
+
+                <div class="keyBoard-cell c-bl"></div>
+                <div class="keyBoard-cell c-bl"></div>
+                
+                <div class="keyBoard-cell f-bl" id="f-bl"></div>
+                <div class="keyBoard-cell g-bl"></div>
+                <div class="keyBoard-cell a-bl"></div>
+
+            </div>
+
+            <div class="keyBoard-row bottom">
+                <div id="key-default" class="keyBoard-cell c"></div>
+                <div class="keyBoard-cell d"></div>
+                <div class="keyBoard-cell e"></div>
+                <div class="keyBoard-cell f"></div>
+                <div class="keyBoard-cell g"></div>
+                <div class="keyBoard-cell a"></div>
+                <div class="keyBoard-cell b"></div>
+                <div class="keyBoard-cell reset"></div>
+            </div>
+            
+
+        </div>
+        <button class="bound-play" id="playBtn">
+            Play
+            <span class="squares">
+              <span class="square"></span>
+              <span class="square"></span>
+              <span class="square"></span>
+            </span>
+        </button>
+        <!-- <script src="soundData.js"></script> -->
+    <script>
+document.addEventListener("DOMContentLoaded", () => {
+    const freq = {
+        vibp: {
+            c: "soundSource/do1_vibp.mp3",
+            d: "soundSource/re1_vibp.mp3",
+            e: "soundSource/mi1_vibp.mp3",
+            f: "soundSource/fa1_vibp.mp3",
+            g: "soundSource/so1_vibp.mp3",
+            a: "soundSource/ra1_vibp.mp3",
+            b: "soundSource/shi1_vibp.mp3",
+        },
+        piano: {
+            c: "soundSource/do1_piano.mp3",
+            d: "soundSource/re1_piano.mp3",
+            e: "soundSource/mi1_piano.mp3",
+            f: "soundSource/fa1_piano.mp3",
+            g: "soundSource/so1_piano.mp3",
+            a: "soundSource/ra1_piano.mp3",
+            b: "soundSource/shi1_piano.mp3",
+        }
+    };
+
+
+    //const miniSquares = document.querySelectorAll(".mini-square");
+    const container = document.getElementById("grid-container");
+    const menu = document.getElementById("menu");
+    const addSquare = document.getElementById("addBtn");
+    const bodyElm = document.getElementsByTagName('body')[0];
+    let keyBoardCells = document.getElementsByClassName('keyBoard-cell');
+    const linesContainer = document.getElementsByClassName('lines-container')[0];
+    // = document.getElementsByClassName('lines-container-frame')[0];
+
+    
+    let activeBrushColor = "";
+    const miniHeight = 40;
+
+    let isDragging = false;
+    let cloneSquare = null;
+    let cloneCutSquare = null;
+    let activeMiniSquare = null; // 現在ドラッグ中のミニスクエアを追跡
+    let resetting = false;
+
+    container.addEventListener("dragstart", (event) => {
+        event.preventDefault();
+    });
+
+    function generateRandomId() {
+        return Math.random().toString(36).slice(-8);
+    }
+
+    function getIdKeyValues() {
+        let valuesArray = [];
+
+        // localStorage のすべてのキーをループ
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i); // i番目のキーを取得
+
+            if (key.startsWith("boundariumMiniSquareData")) { // `idKey` で始まるかチェック
+                let value = localStorage.getItem(key);
+                try {
+                    value = JSON.parse(value); // JSON 文字列ならオブジェクトに変換
+                } catch (e) {
+                    console.warn(`キー "${key}" のデータはJSONとして解析できませんでした。`, value);
+                }
+
+                valuesArray.push(value); // 配列に追加
+            }
+        }
+
+        return valuesArray;
+    }
+
+    // 関数を実行して取得
+    //let idKeyArray = getIdKeyValues();
+
+    //if (idKeyArray.length == 0){
+    //    let defaultID = generateRandomId();
+    //    let defaultData = 
+    //        {
+    //            id: defaultID,
+
+    //            x: 0,
+    //            y: 0,
+
+    //            vx: 2,
+    //            vy: 3,
+
+    //            freq: "c"
+    //        }
+    //    
+    //    localStorage.setItem("boundariumMiniSquareData" + defaultID, JSON.stringify(defaultData));
+    //}
+    //console.log(idKeyArray);
+
+
+    let i = 1
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+            const dot = document.createElement('div');
+            dot.classList.add('dot');
+            dot.classList.add(i);
+            
+            // 各セルの中心に配置
+            const x = (col + 0.45) * (linesContainer.offsetWidth / 9);  // 横位置
+            const y = (row + 0.4) * (linesContainer.offsetHeight / 9); // 縦位置
+            
+            dot.style.left = `${x - dot.offsetWidth / 2}px`;
+            dot.style.top = `${y - dot.offsetHeight / 2}px`;
+            linesContainer.appendChild(dot);
+            i ++
+        }
+    }
+
+    let miniSquares = getIdKeyValues();
+
+    miniSquares.forEach(miniSquare => {
+        let miniElm = document.createElement("div");
+        miniElm.classList.add("mini-square");
+        miniElm.classList.add(miniSquare.freq);
+        miniElm.dataset.freq = miniSquare.freq;
+        miniElm.setAttribute('name', miniSquare.id);
+        miniElm.style.left = miniHeight * 4 + miniHeight * miniSquare.x  + "px"; // 中心を（０、０）とする！
+        miniElm.style.top = miniHeight * 4 + miniHeight * -miniSquare.y  + "px";
+
+        container.appendChild(miniElm);
+        document.getElementsByClassName(getNumberFromCoordinates(miniSquare.x, miniSquare.y))[0].classList.add('active');
+        document.getElementsByClassName(getNumberFromCoordinates(miniSquare.x, miniSquare.y))[0].setAttribute("name", miniSquare.id);
+        
+        //miniElm.addEventListener("mousedown", (e) => {
+        //    isDragging = true;
+        //    activeMiniSquare = miniElm; // どのミニスクエアが操作されているかを保存
+        //    miniElm.classList.add("dragging");
+        //    cloneSquare = miniElm.cloneNode(true);
+        //    cloneSquare.style.position = "absolute";
+        //    cloneSquare.style.pointerEvents = "none";
+        //    cloneSquare.style.opacity = "0";
+        //    document.body.appendChild(cloneSquare);
+        //});
+
+        //miniElm.addEventListener("click", () => {
+        //    menu.classList.toggle("show");
+        //    //container.classList.toggle("show");
+        //});
+
+        //miniElm.addEventListener("dragstart", (e) => {
+        //    e.preventDefault();
+        //});
+
+        let tempLine = document.createElement("div");
+        tempLine.classList.add("line");
+        tempLine.classList.add("arrow");
+        tempLine.setAttribute('name', miniSquare.id);
+
+        let x = miniHeight * 4 + miniHeight * miniSquare.x;
+
+        let y = miniHeight * 4 + miniHeight * -miniSquare.y;
+
+        let gdNum = getNumberFromCoordinates((x / miniHeight) - 4, (-y / miniHeight) + 4);
+        miniElm.dataset.vx = miniSquare.vx;
+        miniElm.dataset.vy = miniSquare.vy;
+        tempLine.dataset.vx = miniSquare.vx;
+        tempLine.dataset.vy = miniSquare.vy;
+        console.log(gdNum)
+        console.log(miniSquare.freq)
+        drawLine(tempLine, x + 20, y + 20, x + 20 + (miniSquare.vx * 40), y + 20 - (miniSquare.vy * 40), gdNum);
+        tempLine.classList.add(gdNum + "--line");
+        container.appendChild(tempLine);
+
+
+
+
+    });
+
+    let thisFreq = "default";
+
+    function ketBordSelect(keyBoardCell){
+        for(let keyBoardCell of keyBoardCells) {
+            keyBoardCell.classList.remove('selected')
+        }
+        for (let draggingElm of document.getElementsByClassName('dragging')){
+            draggingElm.remove()
+        }
+        const classList = keyBoardCell.classList;
+        
+        classList.forEach(cls => {
+            if (cls !== 'keyBoard-cell') {
+                thisFreq = cls;
+            }
+        });
+
+        keyBoardCell.classList.add('selected');
+        isDragging = true;
+        // 2. すぐに元の `cursor: url(...)` に戻す
+        setTimeout(() => {
+            document.body.style.cursor = `url('img/brush_click.png') 0 32, auto`;
+            setTimeout(() => {
+                bodyElm.style.cursor = `url('img/brush_` + thisFreq + `.png') 0 32, auto`;
+            }, 100);
+        }, 0); // 10ms 後に戻す
+
+        let miniElm = document.createElement("div");
+        miniElm.classList.add("mini-square");
+        miniElm.classList.add(thisFreq);
+        
+        //miniElm.setAttribute('name', miniSquare.id);
+
+        activeMiniSquare = miniElm; // どのミニスクエアが操作されているかを保存
+        
+        miniElm.classList.add("dragging");
+        cloneSquare = miniElm.cloneNode(true);
+        cloneSquare.style.position = "fixed";
+        cloneSquare.style.pointerEvents = "none";
+        cloneSquare.style.opacity = "0";
+        cloneSquare.style.transition = "0.15s"
+        cloneSquare.setAttribute('name', thisFreq);
+        if (thisFreq == "reset"){
+            resetting = true;
+            cloneSquare.style.margin = "0 6px 0 0"; 
+            cloneSquare.style.backgroundColor = "#d5ebff79";
+            cloneSquare.style.borderRadius = "3.5px";
+        }else{
+            resetting = false;
+        }
+        document.body.appendChild(cloneSquare);
+        activeBrushColor = window.getComputedStyle(cloneSquare).backgroundColor;
+    }
+
+    for(let keyBoardCell of keyBoardCells) {
+        keyBoardCell.addEventListener("click", (e) => {
+            ketBordSelect(keyBoardCell)
+        });
+    };
+
+    ketBordSelect(document.getElementById('key-default'))
+    //let cuttingBln = true;
+    document.addEventListener("mousemove", (e) => {
+        if (isDragging && cloneSquare && editManager.selectedTool == "brush") {
+            let rect = container.getBoundingClientRect();
+            let x = Math.floor((e.clientX - rect.left) / 40) * 40;
+            let y = Math.floor((e.clientY - rect.top) / 40) * 40;
+            if (x >= 0 && x < 360 && y >= 0 && y < 360) {
+                cloneSquare.style.left = `${rect.left + x}px`;
+                cloneSquare.style.top = `${rect.top + y}px`;
+                cloneSquare.style.opacity = "1";
+                cloneSquare.style.width = "34px";
+                cloneSquare.style.height = "34px";
+                cloneSquare.style.boxShadow = "inset 0px 0px 2px " + activeBrushColor;
+                cloneSquare.style.border = "2.5px dashed " + activeBrushColor;
+                if (!resetting){
+                    cloneSquare.style.backgroundColor = "transparent";
+                }else{
+                    cloneSquare.style.width = "40px";
+                    cloneSquare.style.height = "40px";
+                    cloneSquare.style.left = `${rect.left + x - 2}px`;
+                    cloneSquare.style.top = `${rect.top + y - 2}px`;
+                }
+            }else{
+                cloneSquare.style.opacity = "0"
+            }
+        }else if(editManager.selectedTool == "hand" ){//&& cuttingBln){
+            const hitElement = document.elementFromPoint(e.clientX, e.clientY);
+            document.querySelectorAll('.hit-animated').forEach(el => {
+                el.classList.remove('hit-animated');
+            });
+
+            if (hitElement && hitElement.classList.contains('mini-square')) {
+                hitElement.classList.add('hit-animated');
+                
+            }
+        }
+
+    });
+
+    let isProcessing = false;
+    let handBln = false;
+    let cutStartPoint;
+    let cutEndPoint;
+    document.addEventListener("click", (e) => {
+
+        if (isDragging && cloneSquare && activeMiniSquare && editManager.selectedTool == "brush") {
+
+            let rect = container.getBoundingClientRect();
+            let x = Math.floor((e.clientX - rect.left) / 40) * 40;
+            let y = Math.floor((e.clientY - rect.top) / 40) * 40;
+            let resetBln = false;
+            let delDotLine = getNumberFromCoordinates((x / miniHeight) - 4, (-y / miniHeight) + 4);
+            if (x >= 0 && x < 360 && y >= 0 && y < 360) {
+                if (isProcessing) {
+                    return; // 処理中なら無視
+                }
+                isProcessing = true;
+                activeMiniSquare.style.left = `${x}px`;
+                activeMiniSquare.style.top = `${y}px`;
+            }else{
+                isProcessing = false
+                return;
+            }
+            if (e.target.classList.contains("mini-square") ){
+                console.log("!")
+                for (let linneDel of document.getElementsByClassName('line')){
+                    if (linneDel.getAttribute('name') == e.target.getAttribute('name'))
+                    linneDel.style.display = "none";
+                }
+
+                e.target.remove(); // クリックした要素を削除
+                localStorage.removeItem("boundariumMiniSquareData" + e.target.getAttribute('name'));
+                let delDotLine = getNumberFromCoordinates((x / miniHeight) - 4, (-y / miniHeight) + 4);
+                document.getElementsByClassName(delDotLine)[0].classList.remove('active');
+                if (document.getElementsByClassName(delDotLine + "--line")[0] !== undefined){
+                    document.getElementsByClassName(delDotLine + "--line")[0].remove();
+                }
+
+                resetBln = true;
+            }
+            activeMiniSquare.classList.remove("dragging");
+            
+            let miniElm = document.createElement("div");
+            miniElm.classList.add("mini-square");
+            miniElm.classList.add(cloneSquare.getAttribute('name'));
+            miniElm.dataset.freq = cloneSquare.getAttribute('name');
+            if (thisFreq !== "reset"){
+                let defaultID = generateRandomId();
+                let defaultData = 
+                    {
+                        id: defaultID,
+
+                        x: (x / miniHeight) - 4,
+                        y: (-y / miniHeight) + 4,
+
+                        vx: 0,
+                        vy: 0,
+
+                        freq: cloneSquare.getAttribute('name')
+                    }
+                
+                localStorage.setItem("boundariumMiniSquareData" + defaultID, JSON.stringify(defaultData));
+                miniElm.setAttribute('name', defaultID);
+
+                miniElm.style.left = x + "px"; // 中心を（０、０）とする！
+                miniElm.style.top = y + "px";
+                document.getElementsByClassName(getNumberFromCoordinates((x / miniHeight) - 4, (-y / miniHeight) + 4))[0].classList.add('active');
+                document.getElementsByClassName(getNumberFromCoordinates((x / miniHeight) - 4, (-y / miniHeight) + 4))[0].setAttribute('name', miniElm.getAttribute('name'));
+
+            }else{
+                let miniName = e.target.getAttribute('name')
+                miniElm.style.left = x -14 + "px"; // 中心を（０、０）とする！
+                miniElm.style.top = y + 2 + "px";
+                
+                if (e.target.classList.contains("mini-square") && !resetBln) {
+                    e.target.remove(); // クリックした要素を削除
+                    localStorage.removeItem("boundariumMiniSquareData" + miniName);
+                    
+                    document.getElementsByClassName(delDotLine)[0].classList.remove('active');
+
+                }
+
+                
+                for (let linneDel of document.getElementsByClassName(delDotLine + '--line')){
+                    linneDel.style.display = "none";
+                }
+            }
+
+            miniElm.classList.add("fillset");
+            container.appendChild(miniElm);
+            //document.body.removeChild(cloneSquare);
+            
+            setTimeout(() => {
+                document.body.style.cursor = `url('img/brush_click.png') 0 32, auto`;
+                miniElm.classList.add("filled");
+                setTimeout(() => {
+                    bodyElm.style.cursor = `url('img/brush_` + thisFreq + `.png') 0 32, auto`;
+
+                    if (thisFreq == "reset"){
+                        miniElm.style.opacity = "0.5";
+                        setTimeout(() => {
+                            miniElm.remove();
+                        }, 200);
+                    }
+                }, 100);
+            }, 0); // 10ms 後に戻す
+            if (thisFreq !== "reset"){
+                setTimeout(() => {
+                    isProcessing = false;
+                }, 500);
+            }else{
+                isProcessing = false;
+            }
+            //cloneSquare = null;
+            //isDragging = false;
+            //activeMiniSquare = null;
+        } else if(editManager.selectedTool == "hand") {
+            isProcessing = false; // 処理対象でない場合もフラグを戻す
+            if (event.target.classList.contains("mini-square") && handBln == false){
+
+                handBln = true;
+                event.target.style.boxShadow = "3px 3px 2px gray";
+                cloneCutSquare = event.target.cloneNode(true);
+                cloneCutSquare.style.opacity = "1";
+                cloneCutSquare.style.position = "fixed";
+                cloneCutSquare.style.transition = "0s";
+                
+                const rect = event.target.getBoundingClientRect();
+                cloneCutSquare.style.left = rect.left + "px";
+                cloneCutSquare.style.top = rect.top + "px";
+                container.appendChild(cloneCutSquare);
+                event.target.remove();
+                console.log("set??")
+            }else{
+                if (event.target.classList.contains("mini-square")){
+                    let handcloneSquare = cloneCutSquare.cloneNode(true);
+                    handcloneSquare.style.transition = "0.15s"
+                    handcloneSquare.style.position = "absolute"
+                    console.log("set")
+                    let rect = container.getBoundingClientRect();
+                    let x = Math.floor((e.clientX - rect.left) / 40) * 40;
+                    let y = Math.floor((e.clientY - rect.top) / 40) * 40;
+                    handcloneSquare.style.left = x + "px";
+                    handcloneSquare.style.top = y + "px";
+
+                    handcloneSquare.style.boxShadow = "0 0 5px rgba(128, 128, 128, 0.5)";
+                    container.appendChild(handcloneSquare);
+                    cloneCutSquare.remove();
+                    handBln = false;
+                    document.querySelectorAll('.hit-animated').forEach(el => {
+                        el.classList.remove('hit-animated');
+                    });
+                    const nowID = handcloneSquare.getAttribute('name');
+                    let nowData = getIdKeyValues()
+                    for (let data of nowData){
+                        if (data.id == nowID){
+                            console.log('OK!!')
+                            let defaultData = 
+                                {
+                                    id: data.id,
+
+                                    x: (x / miniHeight) - 4,
+                                    y: (-y / miniHeight) + 4,
+
+                                    vx: data.vx,
+                                    vy: data.vy,
+
+                                    freq: data.freq
+                                }
+                            
+                            localStorage.setItem("boundariumMiniSquareData" + nowID, JSON.stringify(defaultData));
+                            
+                            break;
+                        }
+                    }
+                    console.log(nowID)
+                    for (let dot of document.getElementsByClassName('dot')){
+                        if (dot.getAttribute('name') == nowID){
+                            dot.classList.remove("active");
+                            dot.setAttribute("name", "");
+                            break;
+                        }
+                    }
+                    let newDot = document.getElementsByClassName(getNumberFromCoordinates((x / miniHeight) - 4, (-y / miniHeight) + 4))[0];
+                    newDot.classList.add('active');
+                    newDot.setAttribute("name", nowID);
+                }
+            }
+
+            //cuttingBln = true;
+        }
+    });
+
+    function getNumberFromCoordinates(x, y) {
+        // グリッドのサイズ
+        const size = 9;
+        
+        // 中心のオフセット（配列のインデックスは0始まりのため）
+        const centerX = Math.floor(size / 2);
+        const centerY = Math.floor(size / 2);
+        
+        // 配列インデックスに変換
+        const row = centerY - y; // y座標が上に行くほど減るので逆
+        const col = centerX + x; // x座標はそのまま
+        
+        // 範囲外なら null を返す
+        if (row < 0 || row >= size || col < 0 || col >= size) {
+            return null;
+        }
+        
+        // 計算された行と列から番号を取得
+        return String(row * size + col + 1);
+    }
+
+
+
+
+
+
+
+
+    
+
+//pencil
+
+    dotManage("none", "0.5");
+
+    function dotManage(status, lineStatus){
+
+        for (let line of document.getElementsByClassName("line")){
+            line.style.opacity = lineStatus;
+        }
+        linesContainer.style.display = status;
+    }
+
+
+    
+
+
+    const editor = document.querySelector(".editor");
+    const handle = document.querySelector(".drag-handle");
+
+    let isEditorDragging = false;
+    let offsetX, offsetY;
+
+
+
+    handle.addEventListener("mousedown", (e) => {
+        isEditorDragging = true;
+        offsetX = e.clientX - editor.getBoundingClientRect().left;
+        offsetY = e.clientY - editor.getBoundingClientRect().top;
+    });
+
+    document.addEventListener("mousemove", (e) => {
+        if (!isEditorDragging) return;
+        const x = e.clientX - offsetX;
+        const y = e.clientY - offsetY;
+        editor.style.left = `${x}px`;
+        editor.style.top = `${y}px`;
+    });
+
+    document.addEventListener("mouseup", () => {
+        isEditorDragging = false;
+    });
+
+
+
+    let isDrawing = false;
+    let startDot = null;
+    let tempLine = null;
+    let tempArrowLine = null;
+    
+    //const pointElm = document.getElementsByClassName('point')[0];
+    //let pointBln = false;
+
+    let preXNum = 0;
+    let preYNum = 0;
+
+    //let nowXNum = 0;
+    //let nowYNum = 0;
+
+    //let turnBln = false;
+    //let lineStartX;
+    //let lineStartY;
+
+    let lineStartPoint;
+    let lineEndPoint;
+    let lineSquare;
+
+    // 点をクリックした時の処理
+    container.addEventListener("mousedown", (event) => {
+        if (event.target.classList.contains("dot") && event.target.classList.contains("active")) {
+            isDrawing = true;
+            startDot = event.target;
+            lineSquare = startDot.getAttribute('name');
+            //pointElm.style.opacity = "0";
+            //pointBln = false;
+            
+            // 一時的な線を作成
+            tempLine = document.createElement("div");
+            tempLine.classList.add("line");
+            tempLine.classList.add("arrow");
+            
+            let thisDot = "";
+            const classList = event.target.classList;
+            classList.forEach(cls => {
+                if (cls !== 'dot' && cls !== 'active' && cls !== 'now-line') {
+                    thisDot = cls;
+                }
+            });
+            if (document.getElementsByClassName(thisDot + '--line')[0] != undefined){
+                for (let delLine of document.getElementsByClassName(thisDot + '--line')){
+                    console.log(delLine)
+                    delLine.style.display = "none";//
+                }
+            }
+            startDot.classList.add("now-line");
+            tempLine.classList.add("now-lining");
+            tempLine.classList.add(thisDot + "--line");
+            console.log(thisDot)
+            lineStartPoint = thisDot;
+            tempLine.style.opacity = "0";
+            container.appendChild(tempLine);
+        }
+    });
+
+    
+    
+    container.addEventListener("mousemove", (event) => {
+        if (isDrawing && tempLine) {
+
+            const rect = container.getBoundingClientRect();
+
+            const startX = startDot.offsetLeft + startDot.offsetWidth / 2;
+            const startY = startDot.offsetTop + startDot.offsetHeight / 2;
+
+            let endX = event.clientX - rect.left;
+            let endY = event.clientY - rect.top;
+
+            // 近くの dot にスナップ
+            const closestDot = getClosestDot(endX, endY);
+            if (closestDot) {
+                endX = closestDot.offsetLeft + closestDot.offsetWidth / 2;
+                endY = closestDot.offsetTop + closestDot.offsetHeight / 2;
+
+            }
+                        // 20px内側の範囲に制限
+            const minX = 20;
+            const minY = 20;
+            const maxX = container.offsetWidth - 20;
+            const maxY = container.offsetHeight - 20;
+
+            if (endX < minX) endX = minX;
+            if (endY < minY) endY = minY;
+            if (endX > maxX) endX = maxX;
+            if (endY > maxY) endY = maxY;
+
+            //const pointX = endX - pointElm.offsetWidth / 2;
+            //const pointY = endY - pointElm.offsetHeight/ 2;
+            //nowXNum = endX;
+            //nowYNum = endY;
+
+            //let pointXre;
+            
+            //if (!pointBln){
+            //    if (endX < 36 || endX > 324 || endY < 33 || endY > 324){
+            //        pointElm.style.opacity = 1;
+            //        
+            //        if (endX < 35){
+            //            pointElm.style.left = "5px";
+            //            pointElm.style.top = pointY + "px";
+//
+            //        }else if (endX > 324){
+            //            pointElm.style.left = "325px";
+            //            pointElm.style.top = pointY + "px";
+//
+            //        }else if (endY < 33 ){
+            //            pointElm.style.left = pointX + "px";
+            //            pointElm.style.top = "5px";
+//
+            //        }else if (endY > 324){
+            //            pointElm.style.left = pointX + "px";
+            //            pointElm.style.top = "325px";
+            //        }
+            //        pointBln = true;
+            //        preXNum = endX;
+            //        preYNum = endY;
+            //        console.log(preXNum + ":" + preYNum)
+            //        console.log("------------------------")
+            //    }else{
+            //        pointElm.style.opacity = "0";
+            //    }
+            //    if (!closestDot) {
+            //        pointElm.style.opacity = "0";
+            //    }
+            //    
+            //}else{
+            //    if (!turnBln){
+            //        pointElm.style.opacity = 1;
+            //        if (nowXNum != preXNum && nowYNum != preYNum){
+            //            turnBln = true;
+            //            tempLine.classList.remove('arrow');
+            //            drawLine(tempLine, startX, startY, preXNum, preYNum);
+            //            tempArrowLine = document.createElement("div");
+            //            tempArrowLine.classList.add("line");
+            //            tempArrowLine.classList.add("arrow");
+            //            tempArrowLine.classList.add("tempArrow-1");
+//
+            //            tempArrowLine.style.opacity = "0";
+            //            container.appendChild(tempArrowLine);
+//
+            //        }else{
+            //            pointBln = false;
+            //        }
+            //    }else{
+//
+            //        // 反射点として pointElm を動かす --------------------------
+            //        const barY = container.offsetTop + container.offsetHeight - 20; // 反射面Y（調整可能）
+//
+            //        // 点Aから見た鏡像の点
+            //        const mirroredY = barY - (endY - barY);
+            //        const dx = endX - startX;
+            //        const dy = mirroredY - startY;
+//
+            //        
+            //        // dyが0のときは反射点を求められないので回避
+            //        if (dy !== 0) {
+            //            const t = (barY - startY) / dy;
+            //            const reflectX = startX + dx * t;
+            //            const reflectY = barY;
+            //            pointXre = reflectX ;
+            //            // pointElm を反射点に移動
+            //            pointElm.style.left = pointXre + "px";
+            //            
+            //            pointElm.style.top = "325px";
+            //            //pointElm.style.top = (reflectY - pointElm.offsetHeight / 2) + "px";
+            //            pointElm.style.opacity = "1";
+            //        }
+//
+            //        drawLine(tempArrowLine, pointXre, 340, endX, endY);
+            //    }
+            //    
+//
+            //}
+
+
+            // 線を描画
+            //if (!turnBln){
+                drawLine(tempLine, startX, startY, endX, endY);
+            //}else{
+            //    drawLine(tempLine, startX, startY,pointXre, 340);
+            //}
+            
+        }else if (handBln){ //&& !event.target.classList.contains("mini-square")){
+
+            //cuttingBln = false;
+            let rect = container.getBoundingClientRect();
+            let x = Math.floor((event.clientX - rect.left) / 40) * 40;
+            let y = Math.floor((event.clientY - rect.top) / 40) * 40;
+            if (x >= 0 && x < 360 && y >= 0 && y < 360) {
+            
+                cloneCutSquare.style.width = "40px";
+                cloneCutSquare.style.height = "40px";
+                cloneCutSquare.style.left = `${rect.left + x}px`;
+                cloneCutSquare.style.top = `${rect.top + y}px`;
+
+            }
+            let moveElm = cloneCutSquare.getAttribute('name');
+
+
+
+
+            for (let line of document.getElementsByClassName('line')){
+                if (line.getAttribute('name') == moveElm){
+
+                    let moveLine = line.cloneNode(true);
+                    let vx = line.dataset.vx;
+                    let vy = line.dataset.vy;
+                    console.log(vx)
+                    console.log(vy)
+                    line.remove();
+
+                    container.appendChild(moveLine);
+
+                    
+                    let addClass = getNumberFromCoordinates((x / miniHeight) - 4, (-y / miniHeight) + 4) + "--line"
+                    for (let cls of moveLine.classList){
+                        if (cls.includes('--line')) {
+                            moveLine.classList.remove(cls);
+                        }
+                    }
+                    moveLine.classList.add(addClass)
+                    drawLine(moveLine, x + 20, y + 20, x + 20 + (vx * 40), y + 20 - (vy * 40), addClass);
+                    break;
+                }
+            }
+            
+        }
+    });
+
+    function getVector(start, end) {
+        // 不正チェック
+        if (![start, end].every(n => Number.isInteger(n) && n >= 1 && n <= 81)) {
+            throw new Error('start と end には 1〜81 の整数を渡してください');
+        }
+
+        // 0‑based の列・行インデックスを計算
+        const col  = n => (n - 1) % 9;              // x
+        const row  = n => Math.floor((n - 1) / 9);  // y (下に行くほど +)
+
+        const startCol = col(start);
+        const startRow = row(start);
+        const endCol   = col(end);
+        const endRow   = row(end);
+
+        const vx = endCol - startCol;   // 右が +, 左が –
+        const vy = startRow - endRow;   // 上が +, 下が –
+
+        return { vx, vy };
+    }
+    // マウスを離した時の処理（線を確定）
+    container.addEventListener("mouseup", (event) => {
+        if (isDrawing) {
+            isDrawing = false;
+            //turnBln = false;
+            if (event.target.classList.contains("dot") && !event.target.classList.contains("now-line")) {
+                const endDot = event.target;
+                const startX = startDot.offsetLeft + startDot.offsetWidth / 2;
+                const startY = startDot.offsetTop + startDot.offsetHeight / 2;
+                const endX = endDot.offsetLeft + endDot.offsetWidth / 2;
+                const endY = endDot.offsetTop + endDot.offsetHeight / 2;
+                tempLine.classList.remove('now-lining')
+                drawLine(tempLine, startX, startY, endX, endY);
+                tempLine.setAttribute('name',lineSquare);
+                
+
+                let thisDot = "";
+                const classList = event.target.classList;
+                for (let cls of classList){
+                    if (cls !== 'dot' && cls !== 'active' && cls !== 'now-line') {
+                        thisDot = cls;
+                        break;
+                    }
+                };
+                lineEndPoint = thisDot;
+                const vector = getVector(Number(lineStartPoint), Number(lineEndPoint));
+                tempLine.dataset.vx = vector.vx;
+                tempLine.dataset.vy = vector.vy;
+
+                let nowData = getIdKeyValues()
+                for (let data of nowData){
+                    if (data.id == lineSquare){
+                        let defaultData = 
+                            {
+                                id: data.id,
+
+                                x: data.x,
+                                y: data.y,
+
+                                vx: vector.vx,
+                                vy: vector.vy,
+
+                                freq: data.freq
+                            }
+                        
+                        localStorage.setItem("boundariumMiniSquareData" + lineSquare, JSON.stringify(defaultData));
+                        
+                        break;
+                    }
+                }
+                for (let ms of document.getElementsByName(lineSquare)){
+                    if (ms.classList.contains('mini-square')){
+                        ms.dataset.vx = vector.vx;
+                        ms.dataset.vy = vector.vy;
+                    }
+                }
+                lineSquare = "";
+
+                tempLine = null;
+            } else {
+                for (let line of document.getElementsByClassName('now-lining')){
+                    line.remove();
+                }
+                tempLine = null;
+                //pointElm.style.opacity = "0";
+            }
+            for (let dot of document.querySelectorAll('.dot')){
+                dot.classList.remove('now-line')
+            }
+        }
+    });
+
+    function drawSegment(elem, x1, y1, x2, y2){
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len   = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+        elem.style.width  = len + 'px';
+        elem.style.left   = x1 + 'px';
+        elem.style.top    = (y1 - 3) + 'px';  // 元コードの -3 を維持
+        elem.style.transformOrigin = 'left center';
+        elem.style.transform = `rotate(${angle}deg)`;
+        elem.style.opacity   = '1';
+    
+    }
+    // 線を描画する関数
+    function drawLine(base, x1, y1, x2, y2, cls = ""){
+        const minX = 20,  minY = 20;
+        const maxX = container.offsetWidth  - 20;
+        const maxY = container.offsetHeight - 20;
+        const EPS  = 5;        // 0px 判定しきい値;
+        const MAX_BOUNCES = 12;  // 保険
+
+        /* 各回のセグメントを格納して最後に arrow を付け直す */
+        const segs = [];
+
+        /* uid で前回の子セグメントを掃除 */
+        if(!base.dataset.uid) base.dataset.uid = Math.random().toString(36).slice(2,9);
+        document.querySelectorAll(`.seg-${base.dataset.uid}`).forEach(n => n.remove());
+
+        /* 基準ベクトル */
+        let dx = x2 - x1, dy = y2 - y1;
+        let remaining = Math.hypot(dx, dy);
+        let dirX = dx / remaining, dirY = dy / remaining;
+        let curX = x1, curY = y1;
+        let bounces = 0;
+
+        /* 事前に arrow を外しておく */
+        base.classList.remove('arrow');
+
+        while(remaining > EPS && bounces <= MAX_BOUNCES){
+            /* 壁までの距離 (Infinity ガード付き) */
+            const tX = dirX > 0 ? (maxX - curX) / dirX :
+                    dirX < 0 ? (minX - curX) / dirX : Infinity;
+            const tY = dirY > 0 ? (maxY - curY) / dirY :
+                    dirY < 0 ? (minY - curY) / dirY : Infinity;
+
+            let travel = Math.min(remaining, tX, tY);
+
+            /* travel が 0 に近い → 先に反射だけして描かない */
+            if(travel < EPS){
+            if(tX < tY) dirX *= -1;
+            if(tY < tX) dirY *= -1;
+            if(Math.abs(tX - tY) < EPS){ dirX *= -1; dirY *= -1; }
+            bounces++;
+            continue;
+            }
+
+            const nextX = curX + dirX * travel;
+            const nextY = curY + dirY * travel;
+
+            /* 1本目は元ノード、以降はクローン */
+            const seg = segs.length === 0
+            ? base
+            : (()=>{ const c = base.cloneNode(false);
+                    c.classList.add(`seg-${base.dataset.uid}`);
+                    if (cls !== ""){c.classList.add(cls);}
+                    container.appendChild(c); return c; })();
+
+            drawSegment(seg, curX, curY, nextX, nextY);
+            segs.push(seg);
+
+            remaining -= travel;
+            curX = nextX; curY = nextY;
+
+            /* 壁ヒットなら反射 */
+            if(Math.abs(nextX - minX) < EPS || Math.abs(nextX - maxX) < EPS) dirX *= -1;
+            if(Math.abs(nextY - minY) < EPS || Math.abs(nextY - maxY) < EPS) dirY *= -1;
+
+            bounces++;
+        }
+
+        /* --- 矢印を最後のセグメントだけに付与 --- */
+        segs.forEach(s => s.classList.remove('arrow'));
+        if(segs.length) segs[segs.length-1].classList.add('arrow');
+    }
+    // 最も近い dot を取得する関数
+    function getClosestDot(x, y) {
+        let closestDot = null;
+        let minDistance = 20; // スナップ距離のしきい値（20px以内ならスナップ）
+        
+        document.querySelectorAll(".dot").forEach(dot => {
+            const dotX = dot.offsetLeft + dot.offsetWidth / 2;
+            const dotY = dot.offsetTop + dot.offsetHeight / 2;
+            const distance = Math.sqrt((dotX - x) ** 2 + (dotY - y) ** 2);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestDot = dot;
+            }
+        });
+
+        return closestDot;
+    }
+
+
+    let editManager = {
+        selectedTool: "brush"
+    };
+
+    const editButtons = document.querySelectorAll('.editor-btn');
+    const keyBoardCtn = document.getElementsByClassName('keyBoard-ctn')[0];
+
+    for (let button of editButtons){
+        button.addEventListener('click', (e) => {
+
+            const clickedButton = e.target.closest('button');
+            if (clickedButton) {
+                // すべてのボタンから selected クラスを削除
+                editButtons.forEach(btn => btn.classList.remove('selected'));
+
+                // クリックされたボタンに selected クラスを追加
+                clickedButton.classList.add('selected');
+                
+                // クリックされたボタンの name 属性を取得し、editManagerに格納
+                const name = clickedButton.getAttribute('name');
+
+                editManager.selectedTool = name;
+
+                if (name == "brush"){
+                    dotManage("none", "0.5");
+                    isDrawing = false;
+                    tempLine = null;
+                    for (let line of document.getElementsByClassName('now-lining')){
+                        line.remove();
+                    }
+                    keyBoardCtn.classList.add('open');
+                    setTimeout(() => {
+                        bodyElm.style.cursor = `url('img/brush_` + thisFreq + `.png') 0 32, auto`;
+                        console.log(`url('img/brush_` + thisFreq + `.png') 0 32, auto`)
+                    }, 10);
+                }else{
+                    keyBoardCtn.classList.remove('open');
+                    setTimeout(() => {
+                        bodyElm.style.cursor = `url('img/` + name + `.png') 0 32, auto`;
+                    }, 10);
+                    if (name == "hand"){
+                        dotManage("none", "0.5");
+                        isDrawing = false;
+                        tempLine = null;
+                        for (let line of document.getElementsByClassName('now-lining')){
+                            line.remove();
+                        }
+                    }else{
+                        dotManage("block", "1");
+                    }
+                }
+                
+                // 編集されたツールをコンソールに表示（確認用）
+                console.log('選択されたツール:', editManager.selectedTool);
+            }
+        });
+    };
+    
+
+
+    // ==== 定数 ============================================
+    const SIZE     = 40;               // ミニスクエアの一辺
+    const BOX_SIZE = 360;              // container 内寸
+    const MAX      = BOX_SIZE - SIZE;  // 反射境界 (320px)
+
+
+    // ==== ヘルパ：反射後の座標を計算 =======================
+    function reflect(pos, max) {
+        if (pos < 0)    return -pos;         // 左／上
+        if (pos > max)  return 2 * max - pos; // 右／下
+        return pos;                          // 範囲内
+    }
+    let squares;
+    let vel;
+
+
+    const sounds = {};
+    for (const [note, src] of Object.entries(freq.vibp)) {
+        const audio = new Audio(src);
+        audio.preload = 'auto';
+        sounds[note] = audio;
+    }
+    const noteList = Object.keys(sounds);  // ["c","d",...]
+    let nextIdx = 0;  
+                         // 順番で鳴らす例
+
+
+
+
+
+
+
+  // ==== メインループ ====================================
+  let frameId = null;
+
+
+
+
+
+  function step() {
+    for (const sq of squares) {
+      // 現在の速度
+      let bounced = false;
+      let { vx, vy } = vel.get(sq);
+
+      // 新しい位置
+      let x = parseInt(sq.style.left, 10) + vx;
+      let y = parseInt(sq.style.top , 10) + vy;
+
+      // X 方向の反射判定
+      if (x < 0 || x > MAX) {
+        vx = -vx;
+        x  = reflect(x, MAX);
+        bounced = true;
+      }
+      // Y 方向の反射判定
+      if (y < 0 || y > MAX) {
+        vy = -vy;
+        y  = reflect(y, MAX);
+        bounced = true;
+      }
+
+      // 位置と速度を保存
+      sq.style.left = x + 'px';
+      sq.style.top  = y + 'px';
+      vel.set(sq, { vx, vy });
+      if (bounced) {
+        sq.classList.add('hit');
+        // アニメーション終了後にクラスを外す
+        sq.addEventListener('animationend', () => sq.classList.remove('hit'), { once:true });
+        const note = sq.dataset.freq;
+        const a = sounds[note];
+        if (a) {
+            a.currentTime = 0;
+            a.play();
+        }
+      }
+    }
+    frameId = requestAnimationFrame(step);
+  }
+    const playBtn = document.getElementById('playBtn')
+    playBtn.addEventListener('click', () => {
+        if (playBtn.textContent.includes("Play")){
+            playBtn.textContent = "Pause";
+            for (let line of document.getElementsByClassName('line')){
+                line.style.opacity = "0";
+            }
+
+            // ==== データ構造 (WeakMap で要素 ↔︎ 速度を紐づけ) ======
+            squares = Array.from(document.querySelectorAll('.mini-square'));
+            for (let square of squares){
+                square.style.transition = "0s";
+            }
+            vel     = new WeakMap();
+            linesContainer.style.display = "none";
+            for (const sq of squares) {
+                vel.set(sq, {
+                    vx: parseInt(sq.dataset.vx, 10),
+                    vy: -parseInt(sq.dataset.vy, 10),
+                });
+                const bg=getComputedStyle(sq).backgroundColor;
+                sq.style.color=bg;
+
+            }
+            step();
+        }else{
+            playBtn.textContent = "Play";
+            cancelAnimationFrame(frameId);
+            frameId=null;
+        }
+    });
+
+
+
+
+
+});
+    </script>
+</body>
+</html>
