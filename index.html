@@ -429,9 +429,10 @@
 
         .c{
             background-color: rgb(231, 74, 65);
+            /*background-image: linear-gradient(135deg, rgb(231, 74, 65), rgba(231, 95, 65, 0.75));*/
         }        
         .c-bl{
-            background-image: linear-gradient(90deg, rgb(229, 49, 25), rgb(255, 236, 67));
+            background-image: linear-gradient(135deg, rgb(229, 49, 25), rgb(255, 236, 67));
         }
         
         .d{
@@ -541,6 +542,7 @@
     
 
     <div class="container" id="grid-container">
+        
         <div class="lines-container">
             <div class="lines-container-frame">
                 <!-- <div class="point"></div> -->
@@ -580,11 +582,11 @@
         </div>
         <button class="bound-play" id="playBtn">
             Play
-            <span class="squares">
+        <!--<span class="squares">
               <span class="square"></span>
               <span class="square"></span>
               <span class="square"></span>
-            </span>
+            </span>-->
         </button>
         <!-- <script src="soundData.js"></script> -->
     <script>
@@ -1576,7 +1578,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // クリックされたボタンに selected クラスを追加
                 clickedButton.classList.add('selected');
-                
+
                 // クリックされたボタンの name 属性を取得し、editManagerに格納
                 const name = clickedButton.getAttribute('name');
 
@@ -1633,7 +1635,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     let squares;
     let vel;
-
+    let init;
 
     const sounds = {};
     for (const [note, src] of Object.entries(freq.vibp)) {
@@ -1713,12 +1715,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 square.style.transition = "0s";
             }
             vel     = new WeakMap();
+            init = new WeakMap();
             linesContainer.style.display = "none";
             for (const sq of squares) {
+                const vx0 = +sq.dataset.vx;
+                const vy0 = +sq.dataset.vy;
+                const x0  = parseInt(sq.style.left, 10);
+                const y0  = parseInt(sq.style.top , 10);
                 vel.set(sq, {
                     vx: parseInt(sq.dataset.vx, 10),
                     vy: -parseInt(sq.dataset.vy, 10),
                 });
+                init.set(sq, { vx: vx0, vy: vy0, x: x0, y: y0 });
                 const bg=getComputedStyle(sq).backgroundColor;
                 sq.style.color=bg;
 
@@ -1728,6 +1736,14 @@ document.addEventListener("DOMContentLoaded", () => {
             playBtn.textContent = "Play";
             cancelAnimationFrame(frameId);
             frameId=null;
+
+            // ★ すべてのミニスクエアを初期状態に戻す
+            for (const sq of squares) {
+                const { vx, vy, x, y } = init.get(sq);
+                sq.style.left = x + 'px';
+                sq.style.top  = y + 'px';
+                vel.set(sq, { vx, vy });          // 速度もリセット
+            }
         }
     });
 
