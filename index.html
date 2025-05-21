@@ -542,7 +542,8 @@
     
 
     <div class="container" id="grid-container">
-        
+        <canvas id="trailCanvas" width="360" height="360"
+            style="position:absolute; inset:0; pointer-events:none; z-index:0; opacity: 0.5;"></canvas>
         <div class="lines-container">
             <div class="lines-container-frame">
                 <!-- <div class="point"></div> -->
@@ -1509,8 +1510,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if(tX < tY) dirX *= -1;
             if(tY < tX) dirY *= -1;
             if(Math.abs(tX - tY) < EPS){ dirX *= -1; dirY *= -1; }
-            bounces++;
-            continue;
+                bounces++;
+                continue;
             }
 
             const nextX = curX + dirX * travel;
@@ -1619,8 +1620,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
     
+    const trailCanvas = document.getElementById('trailCanvas');
+    const ctx         = trailCanvas.getContext('2d');
+    let prevPos = new WeakMap();
 
+    // 線を細く滑らかに
+    ctx.lineWidth = 8;
+    ctx.lineCap   = 'round';
 
+    function clearTrail() {
+        ctx.clearRect(0, 0, BOX_SIZE, BOX_SIZE);
+        prevPos = new WeakMap();     // ★ まるごと新しいマップに置き換え
+    }
     // ==== 定数 ============================================
     const SIZE     = 40;               // ミニスクエアの一辺
     const BOX_SIZE = 360;              // container 内寸
@@ -1654,56 +1665,76 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // ==== メインループ ====================================
-  let frameId = null;
+    let frameId = null;
 
 
 
 
 
-  function step() {
-    for (const sq of squares) {
-      // 現在の速度
-      let bounced = false;
-      let { vx, vy } = vel.get(sq);
+    function step() {
+        ctx.save();                                      // ← 状態退避
+        ctx.globalCompositeOperation = 'destination-out';// ★消しゴムモード
+        ctx.fillStyle = 'rgba(0,0,0,0.01)';              // αだけ0.04減らす
+        ctx.fillRect(0, 0, BOX_SIZE, BOX_SIZE);
+        ctx.restore();
+        for (const sq of squares) {
+            // 現在の速度
+            let bounced = false;
+            let { vx, vy } = vel.get(sq);
 
-      // 新しい位置
-      let x = parseInt(sq.style.left, 10) + vx;
-      let y = parseInt(sq.style.top , 10) + vy;
+            // 新しい位置
+            let x = parseInt(sq.style.left, 10) + vx;
+            let y = parseInt(sq.style.top , 10) + vy;
 
-      // X 方向の反射判定
-      if (x < 0 || x > MAX) {
-        vx = -vx;
-        x  = reflect(x, MAX);
-        bounced = true;
-      }
-      // Y 方向の反射判定
-      if (y < 0 || y > MAX) {
-        vy = -vy;
-        y  = reflect(y, MAX);
-        bounced = true;
-      }
+            // X 方向の反射判定
+            if (x < 0 || x > MAX) {
+                vx = -vx;
+                x  = reflect(x, MAX);
+                bounced = true;
+            }
+            // Y 方向の反射判定
+            if (y < 0 || y > MAX) {
+                vy = -vy;
+                y  = reflect(y, MAX);
+                bounced = true;
+            }
 
-      // 位置と速度を保存
-      sq.style.left = x + 'px';
-      sq.style.top  = y + 'px';
-      vel.set(sq, { vx, vy });
-      if (bounced) {
-        sq.classList.add('hit');
-        // アニメーション終了後にクラスを外す
-        sq.addEventListener('animationend', () => sq.classList.remove('hit'), { once:true });
-        const note = sq.dataset.freq;
-        const a = sounds[note];
-        if (a) {
-            a.currentTime = 0;
-            a.play();
+            // 位置と速度を保存
+            sq.style.left = x + 'px';
+            sq.style.top  = y + 'px';
+            vel.set(sq, { vx, vy });
+            const cx = x + SIZE / 2;      // 中心座標
+            const cy = y + SIZE / 2;
+            const p = prevPos.get(sq);
+            if (p) {
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(cx, cy);
+                ctx.strokeStyle = getComputedStyle(sq).backgroundColor; // 四辺の色で
+                ctx.stroke();
+            }
+            prevPos.set(sq, { x: cx, y: cy });
+
+            if (bounced) {
+                sq.classList.add('hit');
+                // アニメーション終了後にクラスを外す
+                sq.addEventListener('animationend', () => sq.classList.remove('hit'), { once:true });
+                const note = sq.dataset.freq;
+                const a = sounds[note];
+                if (a) {
+                    a.currentTime = 0;
+                    a.play();
+                }
+            }
         }
-      }
-    }
     frameId = requestAnimationFrame(step);
   }
     const playBtn = document.getElementById('playBtn')
     playBtn.addEventListener('click', () => {
         if (playBtn.textContent.includes("Play")){
+            keyBoardCtn.classList.remove('open');
+            editor.style.opacity = "0";
+            editor.style.zIndex = "-1";
             playBtn.textContent = "Pause";
             for (let line of document.getElementsByClassName('line')){
                 line.style.opacity = "0";
@@ -1731,18 +1762,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 sq.style.color=bg;
 
             }
+
+            clearTrail(); 
             step();
         }else{
+            editor.style.opacity = "1";
+            editor.style.zIndex = "99999";
+            for (let line of document.getElementsByClassName('line')){
+                line.style.opacity = "0.5";
+            }
+            if (editManager.selectedTool == "brush"){
+                keyBoardCtn.classList.add('open');
+            }else if (editManager.selectedTool == "pencil"){
+                dotManage("block", "0.5");
+            }
             playBtn.textContent = "Play";
             cancelAnimationFrame(frameId);
             frameId=null;
-
+            clearTrail();
             // ★ すべてのミニスクエアを初期状態に戻す
             for (const sq of squares) {
                 const { vx, vy, x, y } = init.get(sq);
                 sq.style.left = x + 'px';
                 sq.style.top  = y + 'px';
                 vel.set(sq, { vx, vy });          // 速度もリセット
+                
             }
         }
     });
