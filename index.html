@@ -19,20 +19,19 @@
 
         /* ===== Play ボタン ===== */
         .bound-play{
-        position:fixed;
-        right: 5%;
-        bottom: 5%;
-        /* 右側をちょっと広めに確保して文字にかぶらないようにする */
-        padding:18px 120px 22px 48px;
-        /*border:4px solid var(--dark);*/
-        border: none;
-        border-radius:40px;
-        background:transparent;
-        color:var(--dark);
-        font-size:28px;font-weight:600;
-        cursor:pointer;
-        transition:transform .15s cubic-bezier(.2,1.3,.4,1);
-        overflow:hidden;
+            position:fixed;
+            right:5%;
+            bottom: 35px;
+            
+            /*border:4px solid var(--dark);*/
+            border: none;
+            border-radius:40px;
+            background:transparent;
+            color:var(--dark);
+            font-size:28px;font-weight:600;
+            cursor:pointer;
+            transition:transform .15s cubic-bezier(.2,1.3,.4,1);
+            overflow:hidden;
         }
 
         .bound-play:hover   {transform:translateY(-6px) scale(1.05);}
@@ -52,13 +51,13 @@
         transform:translateX(4px);
         }
 
-        /* ===== ミニスクエアたち ===== */
+        /* ===== ミニスクエアたち ===== 
         .squares{
         position:absolute;
-        right:50px;                    /* ↩︎ 文字と矢印の間に配置 */
+        right:50px; */                   /* ↩︎ 文字と矢印の間に配置 
         top:50%;transform:translateY(-50%);
         display:flex;gap:6px;
-        pointer-events:none;           /* クリックを奪わない */
+        pointer-events:none;*/           /* クリックを奪わない 
         }
 
         .square{
@@ -68,13 +67,13 @@
         .square:nth-child(1){background:var(--orange);}
         .square:nth-child(2){background:var(--lime);}
         .square:nth-child(3){background:var(--green);}
-
-        /* ★ ホバー時だけ個別アニメを適用 ★ */
+        */
+        /* ★ ホバー時だけ個別アニメを適用 ★ 
         .bound-play:hover .square:nth-child(1){animation:bounce1 1.2s   infinite ease-out;}
         .bound-play:hover .square:nth-child(2){animation:bounce2 1.4s .1s infinite ease-out;}
         .bound-play:hover .square:nth-child(3){animation:bounce3 1.1s .2s infinite ease-out;}
-
-        /* ３種類のぴょこぴょこ */
+        */
+        /* ３種類のぴょこぴょこ 
         @keyframes bounce1{
         0%,100%{transform:translateY( 0);}
         40%    {transform:translateY(-12px);}
@@ -89,7 +88,7 @@
         0%,100%{transform:translateY( 0);}
         35%    {transform:translateY(-10px);}
         65%    {transform:translateY( -5px);}
-        }
+        }*/
         
         body {
             cursor: url('img/brush_default.png') 0 32, auto;
@@ -105,7 +104,7 @@
         .logo {
             position: absolute;
             top: 5px;
-            width: 280px;
+            height: 15%;
 
         }
 
@@ -115,7 +114,7 @@
             z-index: 1000;
             position: absolute;
             width: 80px;
-            height: 200px;
+            height: 300px;
             padding: 10px;
             left: 10%;
             box-shadow: 0px 1px 4px rgb(138, 138, 138);
@@ -182,6 +181,68 @@
             height: 100%;
             object-fit: contain; /* 画像をボタンにフィット */
         }
+
+        :root{
+  --track-color : #d7d7d7;  /* トラック薄グレー   */
+  --thumb-color : rgb(146,143,141); /* つまみ濃グレー    */
+}
+#widthSlider{ --thumb-size: 20px; }
+/* ラッパーはそのまま「縦」サイズ */
+#sliderWrap{
+  width : 16px;  /* つまみ直径に合わせる */
+  height: 90px;  /* 好きな長さ */
+  margin: 10px auto;
+}
+
+/* ───── 横向きスライダーを回転───── */
+#widthSlider{
+  appearance: none;              /* カスタムの下準備 */
+  width : 90px;                  /* ← ラッパー高さと同じ長さ */
+  transform: rotate(-90deg);     /* 右に倒す(-90)で縦 */
+  transform-origin: 45px 45px;   /* 中心をラッパー中央に合わせる */
+  /* “進捗色” を消す */
+  accent-color: rgba(0,0,0,0);   /* Safari でも黒にならない */
+  cursor: pointer;
+  margin: 0 4px;
+}
+
+/* ── 横向き（デフォルト）の track / thumb を色替え ── */
+#widthSlider::-webkit-slider-runnable-track{
+  height: 8px;
+  background: var(--track-color);
+  border-radius: 4px;
+}
+#widthSlider::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  width : var(--thumb-size);
+  height: var(--thumb-size);
+  background: var(--thumb-color);
+  border: 2px solid white;
+  border-radius: 50%;
+  margin-top: -6px;              /* トラック中心合わせ */
+}
+
+/* Firefox */
+#widthSlider::-moz-range-track{
+  height: 4px; background: var(--track-color); border-radius: 2px;
+}
+#widthSlider::-moz-range-thumb{
+    width : var(--thumb-size);
+    height: var(--thumb-size);
+  background: var(--thumb-color); border: 2px solid white; border-radius: 50%;
+}
+
+/* Old Edge / IE */
+#widthSlider::-ms-track{ background: transparent; height:4px; border:0; color:transparent;}
+#widthSlider::-ms-fill-lower,
+#widthSlider::-ms-fill-upper{ background: var(--track-color); border-radius:2px;}
+#widthSlider::-ms-thumb{
+    width : var(--thumb-size);
+    height: var(--thumb-size);
+    background:var(--thumb-color);
+    border:2px solid white; border-radius:50%;
+}
+
 
 
         .container {
@@ -504,6 +565,38 @@
             cursor: pointer;
         }
         */
+/* ボタン本体（共通） */
+.collision-btn{
+  position: fixed; left: 3%; bottom: 15px;
+  padding: 8px 12px;
+  color: rgb(146,143,141);
+  border:none; border-radius:12px;
+  box-shadow:0 2px 4px rgba(0,0,0,.25);
+  cursor:pointer;
+}
+
+.collision-icon rect{             /* 四角はグレー塗り */
+  fill:rgb(146,143,141);
+  transition:transform .1s;
+}
+
+.collision-icon .star{            /* 星はフェード切替 */
+  transition:opacity .2s;
+  transform-origin: 20px 20px;   /* 星の中心を基準に */
+  transform: scale(.65);         /* ★ 一回り小さく */
+  rotate: 90deg;
+}
+
+/* ===== 衝突 ON ===== */
+.collide-on .sqA{ transform:translateX( 0px); }  /* ほぼ重なり */
+.collide-on .sqB{ transform:translateX(-2px); }
+.collide-on .star{ opacity:1; }                  /* ★ 表示 */
+
+/* ===== 衝突 OFF ===== */
+.collide-off .sqA{ transform:translateX(-6px); } /* 離す */
+.collide-off .sqB{ transform:translateX( 6px); }
+.collide-off .star{ opacity:0; }                 /* ★ 非表示 */
+
     </style>
 </head>
 
@@ -537,7 +630,11 @@
             </button>
 
         </div>
-
+        <!-- ラッパー：見た目の高さ＝90px、幅＝つまみ分だけ -->
+        <div id="sliderWrap">
+            <input id="widthSlider" type="range" min="0" max="80" value="20" step="1">
+        </div>
+  
     </div>
     
 
@@ -589,6 +686,31 @@
               <span class="square"></span>
             </span>-->
         </button>
+        <!-- 左下固定のトグルボタン -->
+        <button id="collisionBtn" class="collision-btn collide-off" title="collision OFF">
+            
+            <svg viewBox="0 0 40 40" width="80" height="40" class="collision-icon">
+            <!-- 衝突用の四角 2 つ -->
+            <rect class="sqA" x="-5"  y="15" width="24" height="24"/>
+            <rect class="sqB" x="23" y="15" width="24" height="24"/>
+        
+            <!-- ★ 12 本トゲのスパーク -->
+            <g class="star">
+                <!-- 外側 “白→グレー” の二重ストロークでふちを作る -->
+                <polygon
+                points="20,6 23,14.8 32.1,13 26,20 32.1,27 23,25.2
+                        20,34 17,25.2 7.9,27 14,20 7.9,13 17,14.8"
+                fill="white" stroke="white"                stroke-width="4" stroke-linejoin="round"/>
+                <polygon
+                points="20,6 23,14.8 32.1,13 26,20 32.1,27 23,25.2
+                        20,34 17,25.2 7.9,27 14,20 7.9,13 17,14.8"
+                fill="white" stroke="rgb(146,143,141)"    stroke-width="2" stroke-linejoin="round"/>
+            </g>
+            </svg>
+            <p>collision OFF</p>
+        </button>
+  
+          
         <!-- <script src="soundData.js"></script> -->
     <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -1619,15 +1741,43 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     };
-    
+        
+    /* 衝突フラグ（step() 内で使用） */
+    let collisionEnabled = false;
+
+    /* 要素取得 */
+    const collisionBtn = document.getElementById('collisionBtn');
+
+    /* クリックで ON ↔ OFF */
+    collisionBtn.addEventListener('click', () => {
+        collisionEnabled = !collisionEnabled;
+
+        collisionBtn.classList.toggle('collide-on',  collisionEnabled);
+        collisionBtn.classList.toggle('collide-off', !collisionEnabled);
+        collisionBtn.getElementsByTagName('p')[0].textContent = collisionEnabled ? 'collision ON' : 'collision OFF';
+        collisionBtn.title = collisionEnabled ? 'collision ON' : 'collision OFF';
+    });
+
+
     const trailCanvas = document.getElementById('trailCanvas');
     const ctx         = trailCanvas.getContext('2d');
     let prevPos = new WeakMap();
 
     // 線を細く滑らかに
-    ctx.lineWidth = 8;
-    ctx.lineCap   = 'round';
+    const widthSlider = document.getElementById('widthSlider');
 
+    // 初期値
+    ctx.lineWidth = +widthSlider.value;
+
+    // 🔧 スライダー操作で太さ変更
+    widthSlider.addEventListener('input', (e) => {
+        let w = +e.target.value;
+        ctx.lineWidth = w;
+    });
+
+    ctx.lineCap   = 'round';
+    ctx.lineJoin   = 'round';
+    
     function clearTrail() {
         ctx.clearRect(0, 0, BOX_SIZE, BOX_SIZE);
         prevPos = new WeakMap();     // ★ まるごと新しいマップに置き換え
@@ -1659,6 +1809,41 @@ document.addEventListener("DOMContentLoaded", () => {
                          // 順番で鳴らす例
 
 
+    // ------------ 衝突判定 ------------
+    function isHit(sq1, sq2) {
+        const x1 = parseInt(sq1.style.left, 10);
+        const y1 = parseInt(sq1.style.top , 10);
+        const x2 = parseInt(sq2.style.left, 10);
+        const y2 = parseInt(sq2.style.top , 10);
+        return Math.abs(x1 - x2) < SIZE && Math.abs(y1 - y2) < SIZE;
+    }
+
+    // ------------ 食い込みをほぐす＋速度交換 ------------
+    function resolveCollision(sqA, sqB) {
+        const ax = parseInt(sqA.style.left, 10);
+        const ay = parseInt(sqA.style.top , 10);
+        const bx = parseInt(sqB.style.left, 10);
+        const by = parseInt(sqB.style.top , 10);
+
+        // 速度を入れ替える（超シンプル弾性衝突）
+        const vA = vel.get(sqA);
+        const vB = vel.get(sqB);
+        vel.set(sqA, vB);
+        vel.set(sqB, vA);
+
+        // 押し戻し：重なりが大きい軸方向だけずらす
+        const dx = ax - bx;
+        const dy = ay - by;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            const shift = (SIZE - Math.abs(dx)) / 2;
+            sqA.style.left = ax + Math.sign(dx) * shift + 'px';
+            sqB.style.left = bx - Math.sign(dx) * shift + 'px';
+        } else {
+            const shift = (SIZE - Math.abs(dy)) / 2;
+            sqA.style.top = ay + Math.sign(dy) * shift + 'px';
+            sqB.style.top = by - Math.sign(dy) * shift + 'px';
+        }
+    }
 
 
 
@@ -1677,57 +1862,57 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.fillStyle = 'rgba(0,0,0,0.01)';              // αだけ0.04減らす
         ctx.fillRect(0, 0, BOX_SIZE, BOX_SIZE);
         ctx.restore();
-        for (const sq of squares) {
-            // 現在の速度
-            let bounced = false;
-            let { vx, vy } = vel.get(sq);
 
-            // 新しい位置
+        const edgeBouncedSet = new Set();
+        for (const sq of squares) {
+
+            let { vx, vy } = vel.get(sq);
             let x = parseInt(sq.style.left, 10) + vx;
             let y = parseInt(sq.style.top , 10) + vy;
+            let edgeBounce = false;
 
-            // X 方向の反射判定
-            if (x < 0 || x > MAX) {
-                vx = -vx;
-                x  = reflect(x, MAX);
-                bounced = true;
-            }
-            // Y 方向の反射判定
-            if (y < 0 || y > MAX) {
-                vy = -vy;
-                y  = reflect(y, MAX);
-                bounced = true;
-            }
+            if (x < 0 || x > MAX) { vx = -vx; x = reflect(x, MAX); edgeBounce = true; }
+            if (y < 0 || y > MAX) { vy = -vy; y = reflect(y, MAX); edgeBounce = true; }
 
-            // 位置と速度を保存
             sq.style.left = x + 'px';
             sq.style.top  = y + 'px';
             vel.set(sq, { vx, vy });
-            const cx = x + SIZE / 2;      // 中心座標
-            const cy = y + SIZE / 2;
+
+            if (edgeBounce) edgeBouncedSet.add(sq);  // 後でまとめて音再生
+            const cx = parseInt(sq.style.left, 10) + SIZE / 2;
+            const cy = parseInt(sq.style.top , 10) + SIZE / 2;
+
             const p = prevPos.get(sq);
             if (p) {
                 ctx.beginPath();
                 ctx.moveTo(p.x, p.y);
                 ctx.lineTo(cx, cy);
-                ctx.strokeStyle = getComputedStyle(sq).backgroundColor; // 四辺の色で
+                ctx.strokeStyle = getComputedStyle(sq).backgroundColor;
                 ctx.stroke();
             }
             prevPos.set(sq, { x: cx, y: cy });
-
-            if (bounced) {
-                sq.classList.add('hit');
-                // アニメーション終了後にクラスを外す
-                sq.addEventListener('animationend', () => sq.classList.remove('hit'), { once:true });
-                const note = sq.dataset.freq;
-                const a = sounds[note];
-                if (a) {
-                    a.currentTime = 0;
-                    a.play();
+        }
+        if (collisionEnabled) {              // ← スイッチ！
+            for (let i = 0; i < squares.length; i++) {
+                for (let j = i + 1; j < squares.length; j++) {
+                    const A = squares[i];
+                    const B = squares[j];
+                    if (isHit(A, B)) resolveCollision(A, B);
                 }
             }
         }
-    frameId = requestAnimationFrame(step);
+
+        /* ---------- 壁に当たった子だけエフェクト＆サウンド ---------- */
+        for (const sq of edgeBouncedSet) {
+            sq.classList.add('hit');
+            sq.addEventListener('animationend', () => sq.classList.remove('hit'), { once:true });
+
+            const note = sq.dataset.freq;
+            const a = sounds[note];
+            if (a) { a.currentTime = 0; a.play(); }
+        }
+
+        frameId = requestAnimationFrame(step);
   }
     const playBtn = document.getElementById('playBtn')
     playBtn.addEventListener('click', () => {
