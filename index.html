@@ -570,6 +570,8 @@
   position: fixed; left: 3%; bottom: 15px;
   padding: 8px 12px;
   color: rgb(146,143,141);
+  background-image: linear-gradient(0deg, rgb(243, 237, 233), rgb(255, 255, 255), rgb(255, 252, 247));
+        
   border:none; border-radius:12px;
   box-shadow:0 2px 4px rgba(0,0,0,.25);
   cursor:pointer;
@@ -597,11 +599,44 @@
 .collide-off .sqB{ transform:translateX( 6px); }
 .collide-off .star{ opacity:0; }                 /* ★ 非表示 */
 
+/* ラッパー（画面全面・クリック無効） */
+#blob-layer{ position:fixed; inset:0; z-index:-3; pointer-events:none; }
+
+/* 親 .blob は位置だけ担当 */
+.blob{
+  position:absolute;
+  width:var(--size); height:var(--size);
+  top:var(--sy); left:var(--sx);
+  animation: drift var(--dur) linear infinite alternate;
+}
+
+/* 子 .core が見た目（丸・色・スケール・回転）を担当 */
+.blob .core{
+  width:100%; height:100%; border-radius:10%;
+  background:rgb(243, 241, 224); opacity:.3;
+  animation: pulse var(--dur2) ease-in-out infinite alternate;
+}
+
+/* 平行移動キーフレーム */
+@keyframes drift{
+  to{ transform:translate(var(--tx),var(--ty)); }
+}
+
+/* スケール＋回転キーフレーム */
+@keyframes pulse{
+  to{ transform:scale(1.7) rotate(var(--rot)); }
+}
+
+
+/* 移動は transform で：開始→終了を往復 */
+@keyframes drift{
+  to{ transform: translate(var(--tx), var(--ty)) scale(1.4); }
+}
     </style>
 </head>
 
 <body>
-
+    <div id="blob-layer"></div>
     <img src="img/boundarium-logo.png" alt="ロゴ" class="logo">
     <div class="editor">
         <div class="drag-handle">
@@ -637,7 +672,7 @@
   
     </div>
     
-
+    
     <div class="container" id="grid-container">
         <canvas id="trailCanvas" width="360" height="360"
             style="position:absolute; inset:0; pointer-events:none; z-index:0; opacity: 0.5;"></canvas>
@@ -734,8 +769,34 @@ document.addEventListener("DOMContentLoaded", () => {
             b: "soundSource/shi1_piano.mp3",
         }
     };
+    const layer=document.getElementById('blob-layer');
+  const NUM=20, MIN=50, MAX_=100;
+  const MIN_T=20, MAX_T=45;
 
+  for(let i=0;i<NUM;i++){
+    const size = MIN+Math.random()*(MAX_-MIN);          // 50〜100px
+    const dur  = (MIN_T+Math.random()*(MAX_T-MIN_T));  // 20〜45s
+    const dur2 = dur*0.8;                              // 脈動は少し速め
+    const sx = Math.random()*100+'%';
+    const sy = Math.random()*100+'%';
+    const tx = (Math.random()*600-300)+'%';            // -300%〜+300%
+    const ty = (Math.random()*600-300)+'%';
+    const rot= (Math.random()*10-5)+'deg';             // -5°〜+5°
 
+    const wrap=document.createElement('div');
+    wrap.className='blob';
+    wrap.style.cssText=`
+      --size:${size}px;
+      --sx:${sx}; --sy:${sy};
+      --tx:${tx}; --ty:${ty};
+      --dur:${dur}s; --dur2:${dur2}s;
+      --rot:${rot};
+    `;
+    const core=document.createElement('div');
+    core.className='core';
+    wrap.appendChild(core);
+    layer.appendChild(wrap);
+  }
     //const miniSquares = document.querySelectorAll(".mini-square");
     const container = document.getElementById("grid-container");
     const menu = document.getElementById("menu");
