@@ -600,7 +600,19 @@
 .collide-off .star{ opacity:0; }                 /* ★ 非表示 */
 
 /* ラッパー（画面全面・クリック無効） */
-#blob-layer{ position:fixed; inset:0; z-index:-3; pointer-events:none; }
+#blob-layer{
+  position:fixed; inset:0;
+  z-index:-3; pointer-events:none;
+
+  /* ★ ここから追加 ↓↓↓ */
+  /* 中央 35% は完全透明 → 55% でフル表示になるグラデーション */
+  -webkit-mask-image: radial-gradient(circle at 50% 50%,
+                    transparent 0%, transparent 35%,
+                    black 55%, black 100%);
+          mask-image: radial-gradient(circle at 50% 50%,
+                    transparent 0%, transparent 35%,
+                    black 55%, black 100%);
+}
 
 /* 親 .blob は位置だけ担当 */
 .blob{
@@ -613,7 +625,7 @@
 /* 子 .core が見た目（丸・色・スケール・回転）を担当 */
 .blob .core{
   width:100%; height:100%; border-radius:10%;
-  background:rgb(243, 241, 224); opacity:.3;
+  background:rgb(243, 241, 224); opacity:0.5;
   animation: pulse var(--dur2) ease-in-out infinite alternate;
 }
 
@@ -770,7 +782,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
     const layer=document.getElementById('blob-layer');
-  const NUM=20, MIN=50, MAX_=100;
+  const NUM=40, MIN=50, MAX_=100;
   const MIN_T=20, MAX_T=45;
 
   for(let i=0;i<NUM;i++){
