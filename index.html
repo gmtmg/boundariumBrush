@@ -487,49 +487,41 @@
         #f-bl{
             margin: 0 4px 0 47.5px;
         }
+/* === “ド”：レッド（そのまま、彩度をわずかだけ落とす） === */
+.c{
+  background-color: rgb(218, 100, 94);   /* 旧 231,74,65 → くすみ寄り */
+}
 
-        .c{
-            background-color: rgb(231, 74, 65);
-            /*background-image: linear-gradient(135deg, rgb(231, 74, 65), rgba(231, 95, 65, 0.75));*/
-        }        
-        .c-bl{
-            background-image: linear-gradient(135deg, rgb(229, 49, 25), rgb(255, 236, 67));
-        }
-        
-        .d{
-            background-color: rgb(240, 195, 34);
-        }
-        .d-bl{
-            background-image: linear-gradient(90deg, rgb(255, 240, 25), rgb(255, 162, 23));
-        }
+/* === “レ”：ハニーイエロー → コーンシルク寄りにトーンダウン === */
+.d{
+  background-color: rgb(244, 203, 82);  /* 旧 240,195,34 */
+}
 
-        .e{
-            background-color: rgb(237, 152, 54);
-        }
+/* === “ミ”：アプリコット → キャラメルオレンジに調整 === */
+.e{
+  background-color: rgb(222, 154, 79);  /* 旧 237,152,54 */
+}
 
-        .f{
-            background-color: rgb(92, 202, 58);
-        }
-        .f-bl{
-            background-image: linear-gradient(90deg, rgb(125, 245, 89),rgb(58, 137, 241));
-        }
+/* === “ファ”：ライムグリーン → セージグリーン寄せで柔らかく === */
+.f{
+  background-color: rgb(110, 185, 121); /* 旧 92,202,58 */
+}
 
-        .g{
-            background-color: rgb(48, 122, 218);
-        }
-        .g-bl{
-            background-image: linear-gradient(90deg, rgb(63, 144, 199),rgb(168, 61, 245));
-        }
+/* === “ソ”：ロイヤルブルー → くすみターコイズにシフト === */
+.g{
+  background-color: rgb(73, 144, 205);  /* 旧 48,122,218 */
+}
 
-        .a{
-            background-color: rgb(124, 69, 207);
-        }
-        .a-bl{
-            background-image: linear-gradient(90deg, rgb(154, 100, 235),rgb(226, 59, 232));
-        }
-        .b{
-            background-color: rgb(226, 103, 195);
-        }
+/* === “ラ”：バイオレット → モーブ寄せにトーンダウン === */
+.a{
+  background-color: rgb(133, 102, 196); /* 旧 124,69,207 */
+}
+
+/* === “シ”：チェリーピンク（そのまま明度を上げてやさしく） === */
+.b{
+  background-color: rgb(232, 140, 207); /* 旧 226,103,195 */
+}
+
         
         .reset{
             background-color: #D5EBFF;
@@ -779,6 +771,14 @@ document.addEventListener("DOMContentLoaded", () => {
             g: "soundSource/so1_piano.mp3",
             a: "soundSource/ra1_piano.mp3",
             b: "soundSource/shi1_piano.mp3",
+        },fairyBell: {
+            c: "soundSource/do1_fairyBells.mp3",
+            d: "soundSource/re1_fairyBells.mp3",
+            e: "soundSource/mi1_fairyBells.mp3",
+            f: "soundSource/fa1_fairyBells.mp3",
+            g: "soundSource/so1_fairyBells.mp3",
+            a: "soundSource/ra1_fairyBells.mp3",
+            b: "soundSource/shi1_fairyBells.mp3",
         }
     };
     const layer=document.getElementById('blob-layer');
@@ -1872,7 +1872,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let init;
 
     const sounds = {};
-    for (const [note, src] of Object.entries(freq.vibp)) {
+    for (const [note, src] of Object.entries(freq.fairyBell)) {
         const audio = new Audio(src);
         audio.preload = 'auto';
         sounds[note] = audio;
@@ -1890,33 +1890,46 @@ document.addEventListener("DOMContentLoaded", () => {
         const y2 = parseInt(sq2.style.top , 10);
         return Math.abs(x1 - x2) < SIZE && Math.abs(y1 - y2) < SIZE;
     }
+    function resolveCollision(a, b){
+  /* 位置・速度 */
+  const ax = parseInt(a.style.left,10);
+  const ay = parseInt(a.style.top ,10);
+  const bx = parseInt(b.style.left,10);
+  const by = parseInt(b.style.top ,10);
 
-    // ------------ 食い込みをほぐす＋速度交換 ------------
-    function resolveCollision(sqA, sqB) {
-        const ax = parseInt(sqA.style.left, 10);
-        const ay = parseInt(sqA.style.top , 10);
-        const bx = parseInt(sqB.style.left, 10);
-        const by = parseInt(sqB.style.top , 10);
+  let {vx:avx, vy:avy} = vel.get(a);
+  let {vx:bvx, vy:bvy} = vel.get(b);
 
-        // 速度を入れ替える（超シンプル弾性衝突）
-        const vA = vel.get(sqA);
-        const vB = vel.get(sqB);
-        vel.set(sqA, vB);
-        vel.set(sqB, vA);
+  /* 重なり量 */
+  const overlapX = SIZE - Math.abs(ax - bx);
+  const overlapY = SIZE - Math.abs(ay - by);
 
-        // 押し戻し：重なりが大きい軸方向だけずらす
-        const dx = ax - bx;
-        const dy = ay - by;
-        if (Math.abs(dx) > Math.abs(dy)) {
-            const shift = (SIZE - Math.abs(dx)) / 2;
-            sqA.style.left = ax + Math.sign(dx) * shift + 'px';
-            sqB.style.left = bx - Math.sign(dx) * shift + 'px';
-        } else {
-            const shift = (SIZE - Math.abs(dy)) / 2;
-            sqA.style.top = ay + Math.sign(dy) * shift + 'px';
-            sqB.style.top = by - Math.sign(dy) * shift + 'px';
-        }
-    }
+  /* -------- X 軸衝突が優先 (幅の方が深い) -------- */
+  if (overlapX < overlapY){
+    /* 1) 位置補正：はみ出し分だけ左右に押し戻す */
+    const shift = overlapX / 2;
+    const dir   = Math.sign(ax - bx);   // A→B の向き (+1 or -1)
+    a.style.left = ax + dir * shift + 'px';
+    b.style.left = bx - dir * shift + 'px';
+
+    /* 2) X 速度だけ交換, Y はそのまま */
+    [avx, bvx] = [bvx, avx];
+  }
+  /* -------- Y 軸衝突 (高さの方が深い) -------- */
+  else{
+    const shift = overlapY / 2;
+    const dir   = Math.sign(ay - by);
+    a.style.top = ay + dir * shift + 'px';
+    b.style.top = by - dir * shift + 'px';
+
+    [avy, bvy] = [bvy, avy];
+  }
+
+  /* 速度確定 */
+  vel.set(a,{vx:avx, vy:avy});
+  vel.set(b,{vx:bvx, vy:bvy});
+}
+
 
 
 
@@ -1965,15 +1978,21 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             prevPos.set(sq, { x: cx, y: cy });
         }
-        if (collisionEnabled) {              // ← スイッチ！
-            for (let i = 0; i < squares.length; i++) {
-                for (let j = i + 1; j < squares.length; j++) {
-                    const A = squares[i];
-                    const B = squares[j];
-                    if (isHit(A, B)) resolveCollision(A, B);
+        if (collisionEnabled){
+            const handled = new Set();           // "idA-idB" 文字列を格納
+            for (let i=0;i<squares.length;i++){
+                for (let j=i+1;j<squares.length;j++){
+                    const A=squares[i], B=squares[j];
+                    const key = A.dataset.uid + '-' + B.dataset.uid;
+                    if (handled.has(key)) continue;  // 同フレーム重複を回避
+                    if (isHit(A,B)){
+                        resolveCollision(A,B);
+                        handled.add(key);
+                    }
                 }
             }
         }
+
 
         /* ---------- 壁に当たった子だけエフェクト＆サウンド ---------- */
         for (const sq of edgeBouncedSet) {
