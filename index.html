@@ -114,7 +114,7 @@
             z-index: 1000;
             position: absolute;
             width: 80px;
-            height: 300px;
+            height: 305px;
             padding: 10px;
             left: 10%;
             box-shadow: 0px 1px 4px rgb(138, 138, 138);
@@ -638,7 +638,15 @@
 }
     </style>
 </head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-11BZT4F3HR"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
+  gtag('config', 'G-11BZT4F3HR');
+</script>
 <body>
     <div id="blob-layer"></div>
     <img src="img/boundarium-logo.png" alt="ロゴ" class="logo">
@@ -752,7 +760,9 @@
           
         <!-- <script src="soundData.js"></script> -->
     <script>
+
 document.addEventListener("DOMContentLoaded", () => {
+
     const freq = {
         vibp: {
             c: "soundSource/do1_vibp.mp3",
@@ -1891,44 +1901,44 @@ document.addEventListener("DOMContentLoaded", () => {
         return Math.abs(x1 - x2) < SIZE && Math.abs(y1 - y2) < SIZE;
     }
     function resolveCollision(a, b){
-  /* 位置・速度 */
-  const ax = parseInt(a.style.left,10);
-  const ay = parseInt(a.style.top ,10);
-  const bx = parseInt(b.style.left,10);
-  const by = parseInt(b.style.top ,10);
+        /* 位置・速度 */
+        const ax = parseInt(a.style.left,10);
+        const ay = parseInt(a.style.top ,10);
+        const bx = parseInt(b.style.left,10);
+        const by = parseInt(b.style.top ,10);
 
-  let {vx:avx, vy:avy} = vel.get(a);
-  let {vx:bvx, vy:bvy} = vel.get(b);
+        let {vx:avx, vy:avy} = vel.get(a);
+        let {vx:bvx, vy:bvy} = vel.get(b);
 
-  /* 重なり量 */
-  const overlapX = SIZE - Math.abs(ax - bx);
-  const overlapY = SIZE - Math.abs(ay - by);
+        /* 重なり量 */
+        const overlapX = SIZE - Math.abs(ax - bx);
+        const overlapY = SIZE - Math.abs(ay - by);
 
-  /* -------- X 軸衝突が優先 (幅の方が深い) -------- */
-  if (overlapX < overlapY){
-    /* 1) 位置補正：はみ出し分だけ左右に押し戻す */
-    const shift = overlapX / 2;
-    const dir   = Math.sign(ax - bx);   // A→B の向き (+1 or -1)
-    a.style.left = ax + dir * shift + 'px';
-    b.style.left = bx - dir * shift + 'px';
+        /* -------- X 軸衝突が優先 (幅の方が深い) -------- */
+        if (overlapX < overlapY){
+            /* 1) 位置補正：はみ出し分だけ左右に押し戻す */
+            const shift = overlapX / 2;
+            const dir   = Math.sign(ax - bx);   // A→B の向き (+1 or -1)
+            a.style.left = ax + dir * shift + 'px';
+            b.style.left = bx - dir * shift + 'px';
 
-    /* 2) X 速度だけ交換, Y はそのまま */
-    [avx, bvx] = [bvx, avx];
-  }
-  /* -------- Y 軸衝突 (高さの方が深い) -------- */
-  else{
-    const shift = overlapY / 2;
-    const dir   = Math.sign(ay - by);
-    a.style.top = ay + dir * shift + 'px';
-    b.style.top = by - dir * shift + 'px';
+            /* 2) X 速度だけ交換, Y はそのまま */
+            [avx, bvx] = [bvx, avx];
+        }
+        /* -------- Y 軸衝突 (高さの方が深い) -------- */
+        else{
+            const shift = overlapY / 2;
+            const dir   = Math.sign(ay - by);
+            a.style.top = ay + dir * shift + 'px';
+            b.style.top = by - dir * shift + 'px';
 
-    [avy, bvy] = [bvy, avy];
-  }
+            [avy, bvy] = [bvy, avy];
+        }
 
-  /* 速度確定 */
-  vel.set(a,{vx:avx, vy:avy});
-  vel.set(b,{vx:bvx, vy:bvy});
-}
+        /* 速度確定 */
+        vel.set(a,{vx:avx, vy:avy});
+        vel.set(b,{vx:bvx, vy:bvy});
+    }
 
 
 
